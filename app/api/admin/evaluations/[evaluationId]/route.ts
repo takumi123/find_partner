@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/_lib/prisma';
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { evaluationId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ evaluationId: string }> }
 ) {
+  const { evaluationId } = await params;
   try {
     const { item, point3, point2, point1 } = await request.json();
-    const evaluationId = parseInt(params.evaluationId);
 
     if (!item || !point3 || !point2 || !point1) {
       return NextResponse.json(
@@ -17,7 +17,7 @@ export async function PUT(
     }
 
     const updatedEvaluation = await prisma.evaluationItem.update({
-      where: { id: evaluationId },
+      where: { id: parseInt(evaluationId) },
       data: {
         item,
         point3,
@@ -37,14 +37,14 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: { evaluationId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ evaluationId: string }> }
 ) {
   try {
-    const evaluationId = parseInt(params.evaluationId);
+    const { evaluationId } = await params;
 
     await prisma.evaluationItem.delete({
-      where: { id: evaluationId },
+      where: { id: parseInt(evaluationId) },
     });
 
     return NextResponse.json({ success: true });

@@ -1,11 +1,11 @@
 import { VertexAI } from '@google-cloud/vertexai';
 
-interface EvaluationResult {
+export interface EvaluationResult {
   点数: number;
   メモ: string;
 }
 
-interface AnalysisData {
+export interface AnalysisData {
   評価結果: {
     [key: string]: EvaluationResult;
   };

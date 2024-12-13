@@ -76,21 +76,7 @@ export default function VideoUploadWithBlob() {
 
       const videoUrl = newBlob.url;
 
-      const response = await fetch('/api/videos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ videoUrl }),
-      });
-
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || '分析リクエストに失敗しました');
-      }
-
-      const result = await response.json();
-      console.log('Analysis result:', result);
+      await requestAnalysis(videoUrl);
 
 
     } catch (e) {

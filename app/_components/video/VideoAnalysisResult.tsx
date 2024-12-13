@@ -1,17 +1,4 @@
-interface EvaluationResult {
-  点数: number;
-  メモ: string;
-}
-
-interface AnalysisData {
-  評価結果: {
-    [key: string]: EvaluationResult;
-  };
-  総合評価: string;
-  特に良かった点: string;
-  改善が必要な点: string;
-  次回への課題: string;
-}
+import { AnalysisData } from '@/app/_lib/gemini';
 
 type Props = {
   evaluationData: AnalysisData | null;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/_lib/prisma";
+import { Prisma } from "@prisma/client";
 import { analyzeVideo } from "@/app/_lib/gemini";
 
 export async function GET() {
@@ -21,21 +22,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Content-Typeヘッダーを確認
     const contentType = request.headers.get('content-type');
     console.log('Received Content-Type:', contentType);
-
-    // Content-Typeのデバッグ情報
     console.log('All headers:', Object.fromEntries(request.headers));
 
-    // if (!contentType || contentType !== 'application/json') {
-    //   return NextResponse.json(
-    //     { error: `Invalid Content-Type: ${contentType}. Expected application/json` },
-    //     { status: 400 }
-    //   );
-    // }
-
-    // リクエストボディを取得
     const formData = await request.formData();
     console.log('FormData received:', formData);
 
@@ -54,7 +44,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 既存の動画を探す
     const existingVideo = await prisma.video.findFirst({
       where: {
         videoUrl,
@@ -65,7 +54,6 @@ export async function POST(request: Request) {
       return NextResponse.json(existingVideo);
     }
 
-    // 新しい動画を作成
     const video = await prisma.video.create({
       data: {
         videoUrl,
@@ -73,13 +61,12 @@ export async function POST(request: Request) {
       },
     });
 
-    // 非同期で分析を開始
     analyzeVideo(videoUrl)
       .then(async (evaluationData) => {
         await prisma.video.update({
           where: { id: video.id },
           data: {
-            evaluationData,
+            evaluationData: JSON.parse(JSON.stringify(evaluationData)) as Prisma.InputJsonValue,
             analysisDate: new Date(),
             status: 'completed',
           },
