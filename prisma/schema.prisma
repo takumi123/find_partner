@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id              Int       @id @default(autoincrement())
+  videoUrl        String    @map("video_url")
+  analysisDate    DateTime? @map("analysis_date")
+  evaluationData  Json?     @map("evaluation_data")
+  status          String    @default("pending")
+  errorMessage    String?   @map("error_message")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("videos")
+}
+
+model EvaluationItem {
+  id        Int      @id @default(autoincrement())
+  item      String   @unique
+  point3    String   @map("point_3")
+  point2    String   @map("point_2")
+  point1    String   @map("point_1")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("evaluation_items")
+}
+
+model Prompt {
+  id        Int      @id @default(autoincrement())
+  prompt    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("prompts")
+}
