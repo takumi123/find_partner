@@ -1,7 +1,9 @@
 export type VideoStatus = 'pending' | 'analyzing' | 'completed' | 'error';
 
-// Updated EvaluationData type to accept a string
-export type EvaluationData = string | null;
+// Type for evaluation data structure
+import { AnalysisData } from '../_lib/gemini';
+
+export type EvaluationData = AnalysisData;
 
 export interface Video {
   id: number;

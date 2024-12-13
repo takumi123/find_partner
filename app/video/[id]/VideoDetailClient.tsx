@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { VideoAnalysisResult } from '../../_components/video/VideoAnalysisResult';
-import { Video } from '../../_types/video';
-import { AnalysisData } from '@/app/_lib/gemini';
+import { Video, EvaluationData } from '../../_types/video';
 
 interface Props {
   video: Video;
@@ -12,11 +11,6 @@ interface Props {
 export function VideoDetailClient({ video }: Props) {
   // デバッグログ
   console.log('ビデオデータ:', video);
-
-  // evaluationData を文字列から AnalysisData に変換
-  const parsedEvaluationData = video.evaluationData 
-    ? JSON.parse(video.evaluationData) as AnalysisData 
-    : null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -88,9 +82,9 @@ export function VideoDetailClient({ video }: Props) {
           )}
 
           {/* 分析結果の表示 */}
-          {video.status === 'completed' && parsedEvaluationData && (
+          {video.status === 'completed' && video.evaluationData && (
             <VideoAnalysisResult
-              evaluationData={parsedEvaluationData}
+              evaluationData={video.evaluationData as EvaluationData}
             />
           )}
 

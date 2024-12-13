@@ -1,4 +1,4 @@
-import { AnalysisData } from '@/app/_lib/gemini';
+import { AnalysisData } from '../../_lib/gemini';
 
 type Props = {
   evaluationData: AnalysisData | null;
