@@ -28,7 +28,7 @@ export default async function VideoDetailPage({ params }: PageProps) {
     const video: Video = {
       id: dbVideo.id,
       videoUrl: dbVideo.videoUrl,
-      evaluationData: dbVideo.evaluationData as EvaluationData || null, // Explicit type assertion
+      evaluationData: dbVideo.evaluationData ? (dbVideo.evaluationData as unknown as EvaluationData) : null,
       analysisDate: dbVideo.analysisDate ? dbVideo.analysisDate.toISOString() : null,
       status: dbVideo.status as VideoStatus,
       createdAt: dbVideo.createdAt,

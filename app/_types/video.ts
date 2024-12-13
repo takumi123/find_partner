@@ -8,7 +8,7 @@ export type EvaluationData = AnalysisData;
 export interface Video {
   id: number;
   videoUrl: string | null;
-  evaluationData: EvaluationData; // This will now accept a string or null
+  evaluationData: EvaluationData | null;
   analysisDate: string | null;
   status: VideoStatus;
   error?: string | null;
