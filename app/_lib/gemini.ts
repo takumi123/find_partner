@@ -21,13 +21,31 @@ export async function analyzeVideo(videoUrl: string): Promise<AnalysisData> {
   if (!project) {
     throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is not set. Please configure it in your environment variables.');
   }
+
+  // Set Google Cloud credentials as environment variables
+  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+    throw new Error('GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY environment variables are required for authentication.');
+  }
+
+  // Set the credentials for Google Cloud client library
+  process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify({
+    type: 'service_account',
+    project_id: project,
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+  });
+
   const location = 'asia-northeast1';
   const model = 'gemini-1.5-pro-002';
 
   // 評価項目を取得
   const evaluationItems = await prisma.evaluationItem.findMany();
 
-  const vertex = new VertexAI({ project, location });
+  const vertex = new VertexAI({
+    project,
+    location,
+  });
+
   const generativeModel = vertex.preview.getGenerativeModel({
     model: model,
     generationConfig: {
