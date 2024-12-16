@@ -17,7 +17,10 @@ export interface AnalysisData {
 }
 
 export async function analyzeVideo(videoUrl: string): Promise<AnalysisData> {
-  const project = process.env.GOOGLE_CLOUD_PROJECT_ID || '';
+  const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
+  if (!project) {
+    throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is not set. Please configure it in your environment variables.');
+  }
   const location = 'asia-northeast1';
   const model = 'gemini-1.5-pro-002';
 
