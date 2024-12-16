@@ -53,7 +53,7 @@ export function VideoAnalysisResult({ evaluationData, error }: Props) {
                     {item}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
-                    {result.点数} / 10
+                    {result.点数} / 3
                   </td>
                   <td className="px-6 py-4 text-sm text-black">
                     {result.メモ}
