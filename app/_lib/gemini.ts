@@ -19,21 +19,19 @@ export interface AnalysisData {
 export async function analyzeVideo(videoUrl: string): Promise<AnalysisData> {
   const project = process.env.GOOGLE_CLOUD_PROJECT_ID;
   if (!project) {
-    throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is not set. Please configure it in your environment variables.');
+    throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is not set.');
   }
 
-  // Set Google Cloud credentials as environment variables
   if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-    throw new Error('GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY environment variables are required for authentication.');
+    throw new Error('GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY environment variables are required.');
   }
 
-  // Set the credentials for Google Cloud client library
-  process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify({
-    type: 'service_account',
-    project_id: project,
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-  });
+  const authOptions = {
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    },
+  };
 
   const location = 'asia-northeast1';
   const model = 'gemini-1.5-pro-002';
@@ -44,6 +42,7 @@ export async function analyzeVideo(videoUrl: string): Promise<AnalysisData> {
   const vertex = new VertexAI({
     project,
     location,
+    googleAuthOptions: authOptions,
   });
 
   const generativeModel = vertex.preview.getGenerativeModel({
