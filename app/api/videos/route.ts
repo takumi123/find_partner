@@ -48,27 +48,23 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // ファイル名を生成（一意のファイル名を保証）
+    // 一時ディレクトリにファイルを保存
     const timestamp = Date.now();
     const filename = `${timestamp}-${file.name}`;
-
-    // uploadsディレクトリが存在しない場合は作成
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const tempDir = path.join(process.cwd(), 'tmp');
+    
     try {
-      await fs.access(uploadDir);
+      await fs.access(tempDir);
     } catch {
-      await fs.mkdir(uploadDir, { recursive: true });
+      await fs.mkdir(tempDir, { recursive: true });
     }
 
-    const filePath = path.join(uploadDir, filename);
-    await fs.writeFile(filePath, buffer);
-
-    // データベースに保存するURL
-    const videoUrl = `/uploads/${filename}`;
+    const tempFilePath = path.join(tempDir, filename);
+    await fs.writeFile(tempFilePath, buffer);
 
     const video = await prisma.video.create({
       data: {
-        videoUrl,
+        videoUrl: tempFilePath,
         status: 'pending',
         user: {
           connect: {

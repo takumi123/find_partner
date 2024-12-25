@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { videoId: string } }
+  context: { params: Promise<{ videoId: string }> }
 ) {
   try {
     const session = await auth();
@@ -15,18 +15,16 @@ export async function PATCH(
     }
 
     const { status, startAnalysis } = await req.json();
+    const params = await context.params;
+    const videoId = params.videoId;
     
-    if (!params?.videoId) {
-      return NextResponse.json({ error: 'ビデオIDが必要です' }, { status: 400 });
-    }
-
-    const videoId = parseInt(params.videoId);
-    if (isNaN(videoId)) {
+    if (!videoId || isNaN(parseInt(videoId))) {
       return NextResponse.json({ error: '無効なビデオIDです' }, { status: 400 });
     }
 
+    const parsedVideoId = parseInt(videoId);
     const video = await prisma.video.findUnique({
-      where: { id: videoId },
+      where: { id: parsedVideoId },
     });
 
     if (!video) {
@@ -41,7 +39,7 @@ export async function PATCH(
       try {
         // 分析ステータスを更新
         await prisma.video.update({
-          where: { id: videoId },
+          where: { id: parsedVideoId },
           data: { status: 'analyzing' },
         });
 
@@ -56,7 +54,7 @@ export async function PATCH(
 
         // 分析結果を保存
         const updatedVideo = await prisma.video.update({
-          where: { id: videoId },
+          where: { id: parsedVideoId },
           data: {
             evaluationData: analysisResult,
             status: 'completed',
@@ -70,7 +68,7 @@ export async function PATCH(
         
         // エラー時のステータス更新
         const updatedVideo = await prisma.video.update({
-          where: { id: videoId },
+          where: { id: parsedVideoId },
           data: {
             status: 'error',
             errorMessage: error instanceof Error ? error.message : '分析中にエラーが発生しました',
@@ -83,7 +81,7 @@ export async function PATCH(
 
     // 通常のステータス更新
     const updatedVideo = await prisma.video.update({
-      where: { id: videoId },
+      where: { id: parsedVideoId },
       data: { status },
     });
 

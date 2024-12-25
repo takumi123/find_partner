@@ -5,7 +5,6 @@ import { auth } from '../../../auth';
 import { analyzeVideo } from '../../../_lib/gemini';
 import { Prisma } from '@prisma/client';
 import fs from 'fs';
-import path from 'path';
 import { GaxiosPromise, GaxiosResponse } from 'gaxios';
 import { youtube_v3 } from 'googleapis';
 
@@ -182,8 +181,9 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // YouTubeにビデオをアップロード
-    const fileStream = fs.createReadStream(path.join(process.cwd(), 'public', video.videoUrl.replace(/^\//, '')));
+    // 一時ファイルをYouTubeにアップロード
+    const fileStream = fs.createReadStream(video.videoUrl);
+    const stats = fs.statSync(video.videoUrl);
     
     const insertRequest = youtube.videos.insert({
       auth: oauth2Client,
@@ -203,7 +203,6 @@ export async function POST(req: NextRequest) {
     }, {
       // アップロードのオプション
       onUploadProgress: (evt) => {
-        const stats = fs.statSync(path.join(process.cwd(), 'public', video.videoUrl.replace(/^\//, '')));
         const progress = (evt.bytesRead / stats.size) * 100;
         console.log(`アップロード進捗: ${Math.min(Math.round(progress), 100)}%`);
       }
@@ -215,10 +214,19 @@ export async function POST(req: NextRequest) {
     if (response?.data?.id) {
       const youtubeUrl = `https://www.youtube.com/watch?v=${response.data.id}`;
       
+      try {
+        // 一時ファイルを削除
+        await fs.promises.unlink(video.videoUrl);
+        console.log('一時ファイルを削除しました:', video.videoUrl);
+      } catch (error) {
+        console.error('一時ファイルの削除に失敗しました:', error);
+      }
+
       // YouTubeのURLを更新
       await prisma.video.update({
         where: { id: video.id },
         data: {
+          videoUrl: '', // 元のファイルパスをクリア
           youtubeUrl: youtubeUrl,
           youtubeTitle: title,
           youtubeDescription: description,
