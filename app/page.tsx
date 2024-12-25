@@ -53,22 +53,20 @@ export default function Home() {
           </div>
         )}
         <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold mb-4 layout-text">新規動画アップロード</h2>
+            <VideoUpload onUploadComplete={handleUploadComplete} />
+          </div>
+          
           {status === 'authenticated' && (
-            <>
-              <div>
-                <h2 className="text-lg font-semibold mb-4 layout-text">新規動画アップロード</h2>
-                <VideoUpload onUploadComplete={handleUploadComplete} />
-              </div>
-              
-              <div>
-                <h2 className="text-lg font-semibold mb-4 layout-text">動画一覧</h2>
-                {isLoading ? (
-                  <div className="layout-text">読み込み中...</div>
-                ) : (
-                  <VideoList videos={videos} />
-                )}
-              </div>
-            </>
+            <div>
+              <h2 className="text-lg font-semibold mb-4 layout-text">動画一覧</h2>
+              {isLoading ? (
+                <div className="layout-text">読み込み中...</div>
+              ) : (
+                <VideoList videos={videos} />
+              )}
+            </div>
           )}
         </div>
       </div>
