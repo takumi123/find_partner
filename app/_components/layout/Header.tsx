@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 export function Header() {
   const pathname = usePathname();
@@ -33,6 +34,12 @@ export function Header() {
           >
             評価項目管理
           </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          >
+            ログアウト
+          </button>
         </nav>
       </div>
     </header>

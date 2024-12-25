@@ -1,4 +1,4 @@
-export type VideoStatus = 'pending' | 'analyzing' | 'completed' | 'error';
+export type VideoStatus = 'pending' | 'analyzing' | 'completed' | 'error' | 'uploading_youtube';
 
 // Type for evaluation data structure
 import { AnalysisData } from '../_lib/gemini';
@@ -13,6 +13,9 @@ export interface Video {
   status: VideoStatus;
   error?: string | null;
   errorMessage?: string | null;
+  youtubeUrl?: string | null;
+  youtubeTitle?: string | null;
+  youtubeDescription?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

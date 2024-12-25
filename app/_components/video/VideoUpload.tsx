@@ -1,152 +1,188 @@
-import { useState } from 'react';
-import type { PutBlobResult } from '@vercel/blob';
+'use client';
 
-type Props = {
-  onUploadComplete: () => void;
+import { useState, useRef } from 'react';
+import { useSession, signIn } from 'next-auth/react';
+
+type VideoUploadProps = {
+  onUploadComplete?: () => void;
 };
 
-export function VideoUpload({ onUploadComplete }: Props) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'analyzing'>('idle');
+export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
+  const { data: session, status } = useSession();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError(null);
-    } else {
-      setSelectedFile(null);
-    }
+  const updateStatus = (step: string) => {
+    setCurrentStep(step);
+    console.log(`現在の処理: ${step}`);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!selectedFile) {
-      setError('ファイルを選択してください');
-      return;
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsProcessing(true);
 
     try {
-      setIsUploading(true);
-      setUploadStatus('uploading');
-      setError(null);
-
-      // 1. まずVercel Blobにアップロード
-      const blobResponse = await fetch(
-        `/api/upload?filename=${encodeURIComponent(selectedFile.name)}`,
-        {
-          method: 'POST',
-          body: selectedFile,
-        }
-      );
-
-      if (!blobResponse.ok) {
-        const error = await blobResponse.json();
-        throw new Error(error.error || 'アップロードに失敗しました');
+      if (!session?.user) {
+        throw new Error("ログインが必要です");
       }
 
-      const blob = await blobResponse.json() as PutBlobResult;
-      console.log('Uploaded to Vercel Blob:', blob.url);
+      const files = fileInputRef.current?.files;
+      if (!files || files.length === 0) {
+        throw new Error("動画ファイルを選択してください");
+      }
 
-      // 2. データベースに登録
+      const file = files[0];
+      if (!file.type.startsWith('video/mp4')) {
+        throw new Error("MP4形式の動画ファイルのみアップロード可能です");
+      }
+
+      updateStatus('動画ファイルをアップロード中...');
+      setUploadProgress(0);
+      
+      // FormDataの作成
       const formData = new FormData();
-      formData.append('videoUrl', blob.url);
+      formData.append('file', file);
 
-      const response = await fetch('/api/videos', {
+      // 動画ファイルをアップロード
+      const uploadResponse = await fetch('/api/videos', {
         method: 'POST',
         body: formData,
       });
+      setUploadProgress(33);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '登録に失敗しました');
-      }
-
-      setUploadStatus('analyzing');
-      const data = await response.json();
-      console.log('Registration success:', data);
-      setSelectedFile(null);
+      const uploadResult = await uploadResponse.json();
       
-      // ファイル入力をリセット
-      const fileInput = document.getElementById('video') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.value = '';
+      if (!uploadResponse.ok) {
+        throw new Error(uploadResult.error || 'アップロードに失敗しました');
       }
-      onUploadComplete();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '登録に失敗しました');
+
+      updateStatus('YouTubeにアップロード中...');
+      setUploadProgress(66);
+      
+      // YouTubeにアップロード
+      const youtubeResponse = await fetch('/api/youtube/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          videoId: uploadResult.id,
+          title: file.name,
+          description: '動画の説明'
+        }),
+      });
+
+      if (!youtubeResponse.ok) {
+        const youtubeError = await youtubeResponse.json();
+        throw new Error(youtubeError.error || 'YouTubeへのアップロードに失敗しました');
+      }
+
+      updateStatus('動画を分析中...');
+      setUploadProgress(90);
+      
+      // 分析を開始
+      const analysisResponse = await fetch(`/api/videos/${uploadResult.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startAnalysis: true
+        }),
+      });
+
+      if (!analysisResponse.ok) {
+        const analysisError = await analysisResponse.json();
+        throw new Error(analysisError.error || '分析の開始に失敗しました');
+      }
+
+      setUploadProgress(100);
+      updateStatus('完了');
+      onUploadComplete?.();
+
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : '処理に失敗しました';
+      setError(errorMessage);
+      console.error('Error details:', e);
     } finally {
-      setIsUploading(false);
-      setUploadStatus('idle');
+      setIsProcessing(false);
     }
   };
 
-  const getStatusMessage = () => {
-    switch (uploadStatus) {
-      case 'uploading':
-        return 'アップロード中...';
-      case 'analyzing':
-        return 'Geminiで分析中...';
-      default:
-        return '分析開始';
-    }
-  };
+  if (status === 'loading') {
+    return <div className="p-4">読み込み中...</div>;
+  }
+
+  if (!session) {
+    return (
+      <div className="p-4">
+        <button
+          onClick={() => signIn('google')}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Googleでログイン
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="p-4">
+      <h2 className="text-xl font-bold mb-4">動画アップロード</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label
-            htmlFor="video"
-            className="block text-sm font-medium text-black"
-          >
-            動画ファイル
-          </label>
           <input
+            ref={fileInputRef}
             type="file"
-            id="video"
-            name="video"
-            accept="video/*"
-            onChange={handleFileChange}
-            className="mt-1 block w-full text-black
+            accept="video/mp4"
+            className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-full file:border-0
               file:text-sm file:font-semibold
-              file:bg-indigo-50 file:text-indigo-700
-              hover:file:bg-indigo-100"
-            disabled={isUploading}
+              file:bg-blue-50 file:text-blue-700
+              hover:file:bg-blue-100"
           />
-          {selectedFile && (
-            <p className="mt-2 text-sm text-indigo-600">
-              選択中: {selectedFile.name}
-            </p>
-          )}
+          <p className="mt-1 text-sm text-gray-500">
+            MP4形式の動画ファイルをアップロードしてください
+          </p>
         </div>
 
-        {error && (
-          <div className="text-red-600 text-sm">{error}</div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isUploading || !selectedFile}
-          className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-            ${isUploading || !selectedFile
-              ? 'bg-indigo-400 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-700'
+        <div className="space-y-2">
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className={`w-full px-4 py-2 rounded-lg text-white ${
+              isProcessing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600'
             }`}
-        >
-          <div className="flex items-center space-x-2">
-            {isUploading && (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            )}
-            <span>{getStatusMessage()}</span>
-          </div>
-        </button>
+          >
+            {isProcessing ? '処理中...' : 'アップロードと解析開始'}
+          </button>
+          
+          {isProcessing && (
+            <div className="space-y-2">
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 text-center">{currentStep}</p>
+            </div>
+          )}
+        </div>
       </form>
+
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

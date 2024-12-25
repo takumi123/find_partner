@@ -5,7 +5,11 @@ type Props = {
   error?: string;
 };
 
-export function VideoAnalysisResult({ evaluationData, error }: Props) {
+interface TimelineJumpProps {
+  onTimeClick?: (time: number) => void;
+}
+
+export function VideoAnalysisResult({ evaluationData, error, onTimeClick }: Props & TimelineJumpProps) {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
@@ -87,6 +91,43 @@ export function VideoAnalysisResult({ evaluationData, error }: Props) {
           <p className="text-black whitespace-pre-wrap">{evaluationData.次回への課題}</p>
         </div>
       </div>
+
+      {/* タイムライン評価 */}
+      {evaluationData.タイムライン評価 && evaluationData.タイムライン評価.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4 text-black">タイムライン評価</h3>
+          <div className="space-y-4">
+            {evaluationData.タイムライン評価
+              .sort((a, b) => a.時間 - b.時間)
+              .map((timeline, index) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
+                  <button
+                    onClick={() => onTimeClick?.(timeline.時間)}
+                    className="text-blue-600 hover:text-blue-800 font-medium mb-2"
+                  >
+                    {Math.floor(timeline.時間 / 60)}:{String(timeline.時間 % 60).padStart(2, '0')}
+                  </button>
+                  {timeline.良い点 && (
+                    <div className="text-green-600 mt-1">
+                      <span className="font-medium">良い点：</span>
+                      {timeline.良い点}
+                    </div>
+                  )}
+                  {timeline.悪い点 && (
+                    <div className="text-red-600 mt-1">
+                      <span className="font-medium">悪い点：</span>
+                      {timeline.悪い点}
+                    </div>
+                  )}
+                  <div className="text-gray-600 mt-1">
+                    <span className="font-medium">理由：</span>
+                    {timeline.理由}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* デバッグ情報（開発環境のみ） */}
       {process.env.NODE_ENV === 'development' && (

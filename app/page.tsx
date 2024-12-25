@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Video } from '@prisma/client';
 import { VideoList } from './_components/video/VideoList';
-import { VideoUpload } from './_components/video/VideoUpload';
+import VideoUpload from './_components/video/VideoUpload';
 
 export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);

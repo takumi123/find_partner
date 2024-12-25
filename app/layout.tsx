@@ -1,30 +1,31 @@
-import { Header } from './_components/layout/Header';
-import { Footer } from './_components/layout/Footer';
-import './globals.css';
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { NextAuthProvider } from './_components/providers'
+import { Header } from './_components/layout/Header'
 
-export const metadata = {
-  title: 'Find Partner',
-  description: 'Find your best partner',
-};
+const inter = Inter({ subsets: ['latin'] })
 
-export default function RootLayout({
+export const metadata: Metadata = {
+  title: '恋愛診断デモ',
+  description: '恋愛診断デモ',
+}
+
+export default async function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="ja">
-      <body>
-        <Header />
-        <div className="min-h-[calc(100vh-64px)] pt-16 pb-16">
-          <main className="w-full overflow-auto">
-            <div className="px-4 py-6 mx-auto max-w-[1600px]">
-              {children}
-            </div>
+      <body className={inter.className}>
+        <NextAuthProvider>
+          <Header />
+          <main className="container mx-auto px-4 pt-20 pb-8">
+            {children}
           </main>
-        </div>
-        <Footer />
+        </NextAuthProvider>
       </body>
     </html>
-  );
+  )
 }
