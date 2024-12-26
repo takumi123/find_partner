@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Video } from '@prisma/client';
 import { VideoList } from './_components/video/VideoList';
-import VideoUpload from './_components/video/VideoUpload';
+import VideoUploadWithBlob from './_components/video/VideoUploadWithBlob';
 import { useSession } from 'next-auth/react';
 
 export default function Home() {
@@ -34,10 +34,6 @@ export default function Home() {
     }
   };
 
-  const handleUploadComplete = () => {
-    fetchVideos();
-  };
-
   return (
     <div className="w-full">
       <div className="bg-white shadow rounded-lg p-6">
@@ -55,7 +51,7 @@ export default function Home() {
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold mb-4 layout-text">新規動画アップロード</h2>
-            <VideoUpload onUploadComplete={handleUploadComplete} />
+            <VideoUploadWithBlob />
           </div>
           
           {status === 'authenticated' && (

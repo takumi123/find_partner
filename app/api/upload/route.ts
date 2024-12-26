@@ -9,20 +9,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    
-    if (!file) {
+    const filename = req.nextUrl.searchParams.get('filename');
+    if (!filename) {
       return NextResponse.json(
-        { error: 'ファイルが見つかりません' },
+        { error: 'ファイル名が必要です' },
         { status: 400 }
       );
     }
 
+    // リクエストボディから直接ファイルを取得
+    const file = await req.blob();
+    
     // Vercel Blobにアップロード
-    const blob = await put(file.name, file, {
+    const blob = await put(filename, file, {
       access: 'public',
-      addRandomSuffix: true // ファイル名の重複を避けるためにランダムなサフィックスを追加
+      addRandomSuffix: true
     });
 
     return NextResponse.json({ url: blob.url });

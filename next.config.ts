@@ -23,11 +23,11 @@ const nextConfig: NextConfig = {
           {
             key: 'Content-Security-Policy',
             value: [
-              "default-src 'self' https://*.youtube.com https://*.ytimg.com",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.youtube.com https://*.ytimg.com",
-              "frame-src 'self' https://*.youtube.com",
-              "connect-src 'self' https://*.youtube.com https://*.ytimg.com",
-              "img-src 'self' https://*.youtube.com https://*.ytimg.com data:",
+              "default-src 'self' https://*.youtube.com https://*.ytimg.com https://*.vercel.live",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.youtube.com https://*.ytimg.com https://*.vercel.live",
+              "frame-src 'self' https://*.youtube.com https://*.vercel.live",
+              "connect-src 'self' https://*.youtube.com https://*.ytimg.com https://*.vercel.live https://*.vercel.app",
+              "img-src 'self' https://*.youtube.com https://*.ytimg.com https://*.vercel.live data: blob:",
               "style-src 'self' 'unsafe-inline'",
               "media-src 'self' https://*.youtube.com https://*.ytimg.com",
               "frame-ancestors 'self'",
