@@ -40,17 +40,37 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         throw new Error("MP4形式の動画ファイルのみアップロード可能です");
       }
 
-      updateStatus('動画ファイルをアップロード中...');
+      updateStatus('Vercel Blobに動画ファイルをアップロード中...');
       setUploadProgress(0);
       
-      // FormDataの作成
+      // Vercel Blobに直接アップロード
       const formData = new FormData();
       formData.append('file', file);
 
-      // 動画ファイルをアップロード
-      const uploadResponse = await fetch('/api/videos', {
+      const blobResponse = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+      });
+
+      if (!blobResponse.ok) {
+        const blobError = await blobResponse.json();
+        throw new Error(blobError.error || 'Blobへのアップロードに失敗しました');
+      }
+
+      const { url: blobUrl } = await blobResponse.json();
+      setUploadProgress(30);
+
+      // BlobのURLをAPIに送信してYouTubeアップロードを開始
+      updateStatus('YouTubeに動画をアップロード中...');
+      const uploadResponse = await fetch('/api/videos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blobUrl,
+          fileName: file.name,
+        }),
       });
 
       if (!uploadResponse.ok) {

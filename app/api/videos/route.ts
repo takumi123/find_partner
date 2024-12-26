@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../_lib/prisma';
 import { auth } from '../../auth';
-import { put } from '@vercel/blob';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { analyzeVideo } from '../../_lib/gemini';
@@ -38,27 +37,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const body = await req.json();
+    const { blobUrl, fileName } = body;
     
-    if (!file) {
+    if (!blobUrl || !fileName) {
       return NextResponse.json(
-        { error: 'ファイルが見つかりません' },
+        { error: 'BlobのURLとファイル名が必要です' },
         { status: 400 }
       );
     }
-
-    console.log('Vercel Blobにアップロード中...');
-    // Vercel Blobにアップロード
-    const blob = await put(file.name, file, {
-      access: 'public',
-    });
 
     console.log('データベースに記録中...');
     // データベースに記録
     const video = await prisma.video.create({
       data: {
-        videoUrl: blob.url,
+        videoUrl: blobUrl,
         status: 'uploading',
         user: {
           connect: {
@@ -121,7 +114,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Blobからファイルを取得してYouTubeにアップロード
-    const response = await fetch(blob.url);
+    const response = await fetch(blobUrl);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const readable = Readable.from(buffer);
@@ -131,7 +124,7 @@ export async function POST(req: NextRequest) {
       part: ['snippet', 'status'],
       requestBody: {
         snippet: {
-          title: file.name,
+          title: fileName,
           description: '動画の説明'
         },
         status: {
@@ -148,20 +141,6 @@ export async function POST(req: NextRequest) {
     }
 
     const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeResponse.data.id}`;
-
-    // Vercel Blobから削除
-    // TODO: Blobの削除APIが利用可能になったら実装
-
-    // Vercel Blobから削除
-    try {
-      const blobResponse = await fetch(blob.url);
-      if (!blobResponse.ok) {
-        console.error('Blob削除エラー: ファイルが見つかりません');
-      }
-      // TODO: Blobの削除APIが利用可能になったら実装
-    } catch (error) {
-      console.error('Blob削除エラー:', error);
-    }
 
     // 分析を開始
     try {

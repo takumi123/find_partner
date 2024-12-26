@@ -1,29 +1,35 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
-import { NextResponse } from 'next/server';
+import { auth } from '../../auth';
 
-export async function POST(request: Request): Promise<NextResponse> {
-  const { searchParams } = new URL(request.url);
-  const filename = searchParams.get('filename');
-
-  if (!filename) {
-    return NextResponse.json({ error: 'ファイル名が必要です' }, { status: 400 });
-  }
-
-  const body = request.body;
-  if (!body) {
-    return NextResponse.json({ error: 'ファイルデータが必要です' }, { status: 400 });
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const blob = await put(filename, body, {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+    }
+
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return NextResponse.json(
+        { error: 'ファイルが見つかりません' },
+        { status: 400 }
+      );
+    }
+
+    // Vercel Blobにアップロード
+    const blob = await put(file.name, file, {
       access: 'public',
+      addRandomSuffix: true // ファイル名の重複を避けるためにランダムなサフィックスを追加
     });
 
-    return NextResponse.json(blob);
-  } catch (e) {
-    const error = e as Error;
+    return NextResponse.json({ url: blob.url });
+  } catch (error) {
+    console.error('Upload error:', error instanceof Error ? error.message : '不明なエラー');
     return NextResponse.json(
-      { error: `アップロードに失敗しました: ${error.message}` },
+      { error: 'ファイルのアップロードに失敗しました' },
       { status: 500 }
     );
   }
