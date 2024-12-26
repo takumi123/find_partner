@@ -1,36 +1,44 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
 import { VideoAnalysisResult } from '../../_components/video/VideoAnalysisResult';
 import { Video, EvaluationData } from '../../_types/video';
-import YouTube, { YouTubeEvent, YouTubePlayer } from 'react-youtube';
-
 interface Props {
   video: Video;
 }
 
 export function VideoDetailClient({ video }: Props) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [youtubePlayer, setYoutubePlayer] = useState<YouTubePlayer | null>(null);
+  const getYoutubeVideoId = (url: string) => {
+    if (!url) return null;
+    const patterns = [
+      /[?&]v=([^&]+)/,     // 通常のURL
+      /youtu\.be\/([^?&]+)/, // 短縮URL
+      /\/embed\/([^?&]+)/   // 埋め込みURL
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
 
   const handleTimeClick = (time: number) => {
-    if (video.youtubeUrl && youtubePlayer) {
-      youtubePlayer.seekTo(time);
-      youtubePlayer.playVideo();
-    } else if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      videoRef.current.play();
+    const iframe = document.querySelector<HTMLIFrameElement>('.youtube-player');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(JSON.stringify({
+        event: 'command',
+        func: 'seekTo',
+        args: [time, true]
+      }), '*');
     }
   };
 
-  const getYoutubeVideoId = (url: string) => {
-    const match = url.match(/[?&]v=([^&]+)/);
-    return match ? match[1] : null;
-  };
-
-  // デバッグログ
+  // YouTubeビデオIDの取得とデバッグログ
+  const videoId = video.youtubeUrl ? getYoutubeVideoId(video.youtubeUrl) : null;
   console.log('ビデオデータ:', video);
+  console.log('YouTube URL:', video.youtubeUrl);
+  console.log('抽出されたビデオID:', videoId);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -79,39 +87,21 @@ export function VideoDetailClient({ video }: Props) {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">動画</h2>
             <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              {video.youtubeUrl ? (
-                <YouTube
-                  videoId={getYoutubeVideoId(video.youtubeUrl) || undefined}
-                  onReady={(event: YouTubeEvent) => setYoutubePlayer(event.target)}
-                  opts={{
-                    width: '100%',
-                    height: '100%',
-                    playerVars: {
-                      autoplay: 0,
-                      modestbranding: 1,
-                    },
-                  }}
+              {videoId && typeof window !== 'undefined' && (
+                <iframe
+                  className="youtube-player w-full h-full"
+                  src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&modestbranding=1&rel=0&controls=1`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  referrerPolicy="strict-origin"
+                  loading="lazy"
                 />
-              ) : (
-                <video
-                  ref={videoRef}
-                  src={video.videoUrl || ''}
-                  controls
-                  className="w-full h-full"
-                  controlsList="nodownload"
-                >
-                  お使いのブラウザは動画の再生に対応していません。
-                </video>
               )}
             </div>
             <div className="text-sm text-gray-500">
-              {video.youtubeUrl ? (
+              {video.youtubeUrl && (
                 <>
                   YouTube URL: <a href={video.youtubeUrl} className="text-indigo-600 hover:text-indigo-800" target="_blank" rel="noopener noreferrer">{video.youtubeUrl}</a>
-                </>
-              ) : (
-                <>
-                  URL: <a href={video.videoUrl || ''} className="text-indigo-600 hover:text-indigo-800" target="_blank" rel="noopener noreferrer">{video.videoUrl || ''}</a>
                 </>
               )}
             </div>

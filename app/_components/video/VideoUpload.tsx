@@ -52,57 +52,38 @@ export default function VideoUpload({ onUploadComplete }: VideoUploadProps) {
         method: 'POST',
         body: formData,
       });
-      setUploadProgress(33);
+
+      if (!uploadResponse.ok) {
+        const uploadError = await uploadResponse.json();
+        throw new Error(uploadError.error || 'アップロードに失敗しました');
+      }
 
       const uploadResult = await uploadResponse.json();
-      
-      if (!uploadResponse.ok) {
-        throw new Error(uploadResult.error || 'アップロードに失敗しました');
-      }
+      setUploadProgress(50);
 
-      updateStatus('YouTubeにアップロード中...');
-      setUploadProgress(66);
-      
-      // YouTubeにアップロード
-      const youtubeResponse = await fetch('/api/youtube/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          videoId: uploadResult.id,
-          title: file.name,
-          description: '動画の説明'
-        }),
-      });
+      // 分析の進行状況を確認
+      const checkAnalysis = async () => {
+        const response = await fetch(`/api/videos/${uploadResult.id}`);
+        const data = await response.json();
 
-      if (!youtubeResponse.ok) {
-        const youtubeError = await youtubeResponse.json();
-        throw new Error(youtubeError.error || 'YouTubeへのアップロードに失敗しました');
-      }
+        if (data.status === 'error') {
+          throw new Error(data.errorMessage || '分析中にエラーが発生しました');
+        }
 
-      updateStatus('動画を分析中...');
-      setUploadProgress(90);
-      
-      // 分析を開始
-      const analysisResponse = await fetch(`/api/videos/${uploadResult.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          startAnalysis: true
-        }),
-      });
+        if (data.status === 'completed') {
+          setUploadProgress(100);
+          updateStatus('完了');
+          onUploadComplete?.();
+          return;
+        }
 
-      if (!analysisResponse.ok) {
-        const analysisError = await analysisResponse.json();
-        throw new Error(analysisError.error || '分析の開始に失敗しました');
-      }
+        // まだ完了していない場合は再度チェック
+        setUploadProgress(prev => Math.min(prev + 5, 90));
+        setTimeout(checkAnalysis, 5000);
+      };
 
-      setUploadProgress(100);
-      updateStatus('完了');
-      onUploadComplete?.();
+      // 分析の進行状況チェックを開始
+      setTimeout(checkAnalysis, 5000);
 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : '処理に失敗しました';

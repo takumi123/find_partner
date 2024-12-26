@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { NextAuthProvider } from './_components/providers'
 import { Header } from './_components/layout/Header'
+import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -18,6 +19,12 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        <Script
+          src="https://www.youtube.com/iframe_api"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body className={inter.className}>
         <NextAuthProvider>
           <Header />

@@ -14,6 +14,7 @@ export default async function VideoDetailPage({ params }: PageProps) {
     const id = Number(videoId);
 
     if (isNaN(id)) {
+      console.error('Invalid ID format:', videoId);
       return notFound();
     }
 
@@ -22,12 +23,16 @@ export default async function VideoDetailPage({ params }: PageProps) {
     });
 
     if (!dbVideo) {
+      console.error('Video not found:', id);
       return notFound();
     }
+
+    console.log('Database video:', dbVideo);
 
     const video: Video = {
       id: dbVideo.id,
       videoUrl: dbVideo.videoUrl,
+      youtubeUrl: dbVideo.youtubeUrl,
       evaluationData: dbVideo.evaluationData ? (dbVideo.evaluationData as unknown as EvaluationData) : null,
       analysisDate: dbVideo.analysisDate ? dbVideo.analysisDate.toISOString() : null,
       status: dbVideo.status as VideoStatus,
@@ -36,9 +41,14 @@ export default async function VideoDetailPage({ params }: PageProps) {
       errorMessage: dbVideo.errorMessage,
     };
 
+    console.log('Processed video:', video);
+
     return <VideoDetailClient video={video} />;
   } catch (error) {
     console.error('Error in VideoDetailPage:', error);
-    return notFound();
+    if (error instanceof Error) {
+      console.error('Error details:', error.message, error.stack);
+    }
+    throw error; // Next.jsのエラーページを表示
   }
 }
